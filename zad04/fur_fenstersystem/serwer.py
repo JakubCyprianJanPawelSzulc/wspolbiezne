@@ -46,7 +46,6 @@ def server():
             )
             win32pipe.ConnectNamedPipe(server_queue, None)
             message = win32file.ReadFile(server_queue, 65536)[1].decode()
-            # ... (tutaj obsługujesz wiadomość)
             client_id, requested_id = message.split(':')
             print(f"Otrzymano zapytanie o ID: {requested_id}")
             time.sleep(3)
