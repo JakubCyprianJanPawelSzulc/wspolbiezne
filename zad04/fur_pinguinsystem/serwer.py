@@ -2,11 +2,13 @@ import os
 import sys
 import json
 import time
+import threading
 
 server_queue_path = "/tmp/server_queue"
 database = {1: "Podolski", 2: "Klose", 3: "Mueller", 4: "Ballack"}
 
 def handle_client_request(client_queue_path, client_id, requested_ID):
+    time.sleep(3)
     try:
         if requested_ID in database:
             response = database[requested_ID]
@@ -31,9 +33,8 @@ def main():
         client_id = request['client_id']
         requested_id = request['ID']
 
-        
-        time.sleep(3)
-        handle_client_request(client_queue_path, client_id, requested_id)
+        thread = threading.Thread(target=handle_client_request, args=(client_queue_path, client_id, requested_id))
+        thread.start()
 
 if __name__ == "__main__":
     main()
