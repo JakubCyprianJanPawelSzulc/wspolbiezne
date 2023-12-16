@@ -16,6 +16,7 @@ def sumuj_rekurencyjnie(lista, start, koniec, ilosc_watkow, lock, wyniki):
             nowy_start = start if i == 0 else srodek
             nowy_koniec = srodek if i == 0 else koniec
             watek = threading.Thread(target=sumuj_rekurencyjnie, args=(lista, nowy_start, nowy_koniec, ilosc_watkow // 2, lock, wyniki))
+            print(f"Startuje wątek {watek.name} dla zakresu {nowy_start} - {nowy_koniec}")
             watki.append(watek)
             watek.start()
 
@@ -25,7 +26,7 @@ def sumuj_rekurencyjnie(lista, start, koniec, ilosc_watkow, lock, wyniki):
 def main():
     lista_liczb = list(range(1, 1000001))
 
-    ilosc_watkow = 4
+    ilosc_watkow = 6
 
     lock = threading.Lock()
 
