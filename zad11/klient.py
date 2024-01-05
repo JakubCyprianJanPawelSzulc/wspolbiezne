@@ -29,18 +29,32 @@ class CrosswordClient:
         print('Connected to server on port', port)
         return client_socket
 
-    def wait_for_response(self):
-        server_address = ('localhost', 12345)
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.connect(server_address)
-            while True:
-                response = self.receive_data(client_socket)
-                if response is not None:
-                    self.update_crossword(response)
+    def wait_for_response(self, row, col):
+        while True:
+            print("Waiting for response")
+            time.sleep(1)
+            response = self.receive_data(self.client_socket)
+            print("Response:", response)
+            if response is not None:
+                if response == 'False':
+                    self.entry_grid[row][col].delete(0, tk.END)
+                    print("Invalid move")
+                    break
+                if response == 'True':
+                    print("Valid move")
+                    break
+                else:
+                    print("complete word in row: ", response)
+                    self.block_row_and_color_green(int(response))
+                    break
+                    
+    def block_row_and_color_green(self, row):
+        for i in range(10):
+            self.entry_grid[row][i].config(state=tk.DISABLED, bg='green')
 
     def receive_data(self, socket):
         data = socket.recv(1024).decode()
+        print("Received data:", data)
         return data if data else None
     
     def update_crossword(self, response):
@@ -63,6 +77,7 @@ class CrosswordClient:
         msg = f"{data}/{row}/{col}"
         self.send_data(msg)
         print("Sent data:", data, row, col)
+        self.wait_for_response(row, col)
 
     def send_data(self, data):
         self.client_socket.sendall(data.encode())

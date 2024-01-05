@@ -8,6 +8,7 @@ class CrosswordGame:
         self.lock = threading.Lock()
         self.target_board = []
         self.board = [[''] * len(word) for word in words]
+        self.complete_words = [False] * len(words)
 
     def initialize_target_board(self, words):
         board = [[''] * len(word) for word in words]
@@ -37,7 +38,7 @@ class CrosswordGame:
             time.sleep(1)
             response = self.get_response_from_player(client_socket)
             if response is not None:
-                self.process_response(response)
+                self.process_response(response, client_socket)
                 
 
     def get_response_from_player(self, client_socket):
@@ -46,8 +47,25 @@ class CrosswordGame:
             print("Received data:", response)
             return response if response else None
         
+    def respond_to_player(self, client_socket, isGood, isCompleteWord):
+        if isGood:
+            if isCompleteWord is not None:
+                client_socket.send(str(isCompleteWord).encode())
+            else:
+                client_socket.send('True'.encode())
+        else:
+            client_socket.send('False'.encode())
 
-    def process_response(self, response):
+    def check_if_word_completed(self):
+        for i in range(len(self.board)):
+            if self.complete_words[i]:
+                continue
+            if self.board[i] == self.target_board[i]:
+                self.complete_words[i] = True
+                return True, i
+        return False, None 
+
+    def process_response(self, response, client_socket):
         with self.lock:
             try:
                 letter, x, y = response.split('/')
@@ -55,9 +73,16 @@ class CrosswordGame:
                 if self.validate_move(letter, x, y):
                     self.update_board(letter, x, y)
                     print(f"Player guessed correctly: {letter} at position ({x}, {y})")
-                    # self.print_board(self.board)
+                    self.print_board(self.board)
+                    completed, index = self.check_if_word_completed()
+                    if completed:
+                        print(f"Player completed word: {self.words[index]}")
+                        self.respond_to_player(client_socket, True, index)
+                    else:
+                        self.respond_to_player(client_socket, True, None)
                 else:
                     print(f"Player guessed incorrectly: {letter} at position ({x}, {y})")
+                    self.respond_to_player(False, client_socket)
             except ValueError:
                 print("Invalid response format")
 
@@ -70,10 +95,6 @@ class CrosswordGame:
     
     def update_board(self, letter, x, y):
         self.board[x][y] = letter
-
-    def is_word_completed(self):
-        with self.lock:
-            return ''
 
 if __name__ == '__main__':
     der_port = 12345
