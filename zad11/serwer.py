@@ -28,18 +28,44 @@ class CrosswordGame:
         server_socket.listen()
         print('Server is listening on port', port)
 
-        client_socket, client_address = server_socket.accept()
-        print('Client connected from', client_address)
+        connected_users=0
 
-        self.wait_for_response(client_socket)
+        client1_socket = None
+        client2_socket = None
+        client1_address = None
+        client2_address = None
 
-    def wait_for_response(self, client_socket):
+        while connected_users < 2:
+            client_socket, client_address = server_socket.accept()
+            print('New connection from', client_address)
+            connected_users += 1
+            if client1_socket is None:
+                client1_socket = client_socket
+                client1_address = client_address
+            else:
+                client2_socket = client_socket
+                client2_address = client_address
+
+        print('Both players connected')
+        self.wait_for_response(client1_socket, client2_socket)
+            
+
+    def wait_for_response(self, client_socket1, client_socket2):
+        current_socket=client_socket1
         while True:
             time.sleep(1)
-            response = self.get_response_from_player(client_socket)
+            response = self.get_response_from_player(current_socket)
             if response is not None:
-                self.process_response(response, client_socket)
-                
+                is_good, index = self.process_response(response)
+                self.respond_to_player(current_socket, is_good, index)
+                if is_good is False:
+                    if current_socket == client_socket1:
+                        current_socket = client_socket2
+                        self.respond_to_player(current_socket, True, None)
+                    else:
+                        current_socket = client_socket1
+                        self.respond_to_player(current_socket, True, None)
+
 
     def get_response_from_player(self, client_socket):
         with self.lock:
@@ -48,13 +74,8 @@ class CrosswordGame:
             return response if response else None
         
     def respond_to_player(self, client_socket, isGood, isCompleteWord):
-        if isGood:
-            if isCompleteWord is not None:
-                client_socket.send(str(isCompleteWord).encode())
-            else:
-                client_socket.send('True'.encode())
-        else:
-            client_socket.send('False'.encode())
+        msg = f"{isGood}/{isCompleteWord}"
+        client_socket.sendall(msg.encode())
 
     def check_if_word_completed(self):
         for i in range(len(self.board)):
@@ -65,7 +86,7 @@ class CrosswordGame:
                 return True, i
         return False, None 
 
-    def process_response(self, response, client_socket):
+    def process_response(self, response):
         with self.lock:
             try:
                 letter, x, y = response.split('/')
@@ -77,12 +98,12 @@ class CrosswordGame:
                     completed, index = self.check_if_word_completed()
                     if completed:
                         print(f"Player completed word: {self.words[index]}")
-                        self.respond_to_player(client_socket, True, index)
+                        return True, index
                     else:
-                        self.respond_to_player(client_socket, True, None)
+                        return True, None
                 else:
                     print(f"Player guessed incorrectly: {letter} at position ({x}, {y})")
-                    self.respond_to_player(client_socket, False, None)
+                    return False, None
             except ValueError:
                 print("Invalid response format")
 

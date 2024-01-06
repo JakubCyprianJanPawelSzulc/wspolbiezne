@@ -9,6 +9,8 @@ class CrosswordClient:
         self.root = root
         self.client_socket=self.create_communication_thread(12345)
         self.create_ui()
+        self.already_guessed = []
+        self.waiting_for_response = False
 
     def create_ui(self):
         self.entry_grid = [[None] * 10 for _ in range(10)]
@@ -30,32 +32,42 @@ class CrosswordClient:
         return client_socket
 
     def wait_for_response(self, row, col):
-        while True:
+        while self.waiting_for_response:
             print("Waiting for response")
             time.sleep(1)
             response = self.receive_data(self.client_socket)
             print("Response:", response)
             if response is not None:
-                if response == 'False':
-                    self.entry_grid[row][col].delete(0, tk.END)
+                parts = response.split('/')
+                if parts[0] == 'True':
+                    if parts[1] == 'None':
+                        print("Valid move")
+                        self.waiting_for_response = False
+                        break
+                    elif int(parts[1]) not in self.already_guessed:
+                        print("Complete word in row:", parts[1])
+                        self.block_row_and_color_green(int(parts[1]))
+                        self.waiting_for_response = False
+                        break
+                elif parts[0] == 'False':
                     print("Invalid move")
+                    for i in range(10):
+                        for j in range(10):
+                            self.entry_grid[i][j].config(state=tk.DISABLED, bg='red')
+                    self.entry_grid[row][col].delete(0, tk.END)
+                    self.waiting_for_response = True
                     break
-                if response == 'True':
-                    print("Valid move")
-                    break
-                else:
-                    print("complete word in row: ", response)
-                    self.block_row_and_color_green(int(response))
-                    break
-                    
+
     def block_row_and_color_green(self, row):
+        self.already_guessed.append(row)
         for i in range(10):
             self.entry_grid[row][i].config(state=tk.DISABLED, bg='green')
 
     def receive_data(self, socket):
-        data = socket.recv(1024).decode()
-        print("Received data:", data)
-        return data if data else None
+        print("Receiving data")
+        response = socket.recv(1024).decode()
+        print("Received data:", response)
+        return response if response else None
     
     def update_crossword(self, response):
         for i, row in enumerate(response):
@@ -78,6 +90,7 @@ class CrosswordClient:
             msg = f"{data}/{row}/{col}"
             self.send_data(msg)
             print("Sent data:", data, row, col)
+            self.waiting_for_response = True
             self.wait_for_response(row, col)
         else:
             print("Invalid input")
