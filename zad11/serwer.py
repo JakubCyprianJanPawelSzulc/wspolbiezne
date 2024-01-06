@@ -82,14 +82,15 @@ class CrosswordGame:
                         self.respond_to_player(client_socket, True, None)
                 else:
                     print(f"Player guessed incorrectly: {letter} at position ({x}, {y})")
-                    self.respond_to_player(False, client_socket)
+                    self.respond_to_player(client_socket, False, None)
             except ValueError:
                 print("Invalid response format")
 
     def validate_move(self, letter, x, y):
         return (
-            0 <= x < len(self.target_board) and
-            0 <= y < len(self.target_board[0]) and
+            x >= 0 and x < len(self.board) and
+            y >= 0 and y < len(self.board[x]) and
+            self.board[x][y] == '' and
             self.target_board[x][y] == letter
         )
     

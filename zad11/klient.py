@@ -72,12 +72,15 @@ class CrosswordClient:
         self.entry_grid[row][col].config(bg='lightblue')
 
     def handle_key(self, event):
-        data = event.char
-        row, col = self.current_field
-        msg = f"{data}/{row}/{col}"
-        self.send_data(msg)
-        print("Sent data:", data, row, col)
-        self.wait_for_response(row, col)
+        data = event.char.upper()
+        if data.isalpha():
+            row, col = self.current_field
+            msg = f"{data}/{row}/{col}"
+            self.send_data(msg)
+            print("Sent data:", data, row, col)
+            self.wait_for_response(row, col)
+        else:
+            print("Invalid input")
 
     def send_data(self, data):
         self.client_socket.sendall(data.encode())
