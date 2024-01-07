@@ -53,7 +53,7 @@ class CrosswordGame:
     def wait_for_response(self, client_socket1, client_socket2):
         current_socket=client_socket1
         while True:
-            time.sleep(1)
+            # time.sleep(1)
             response = self.get_response_from_player(current_socket)
             if response is not None:
                 is_good, index = self.process_response(response)
@@ -61,9 +61,13 @@ class CrosswordGame:
                 if is_good is False:
                     if current_socket == client_socket1:
                         current_socket = client_socket2
+                        print("Switching to player 2")
+                        print("Current socket:", current_socket)
                         self.respond_to_player(current_socket, True, None)
                     else:
                         current_socket = client_socket1
+                        print("Switching to player 1")
+                        print("Current socket:", current_socket)
                         self.respond_to_player(current_socket, True, None)
 
 

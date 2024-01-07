@@ -11,6 +11,8 @@ class CrosswordClient:
         self.create_ui()
         self.already_guessed = []
         self.waiting_for_response = False
+        self.lock = threading.Lock()
+        self.blocked=False
 
     def create_ui(self):
         self.entry_grid = [[None] * 10 for _ in range(10)]
@@ -40,6 +42,12 @@ class CrosswordClient:
             if response is not None:
                 parts = response.split('/')
                 if parts[0] == 'True':
+                    if self.blocked:
+                        self.blocked=False
+                        for i in range(10):
+                            if i not in self.already_guessed:
+                                for j in range(10):
+                                    self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
                     if parts[1] == 'None':
                         print("Valid move")
                         self.waiting_for_response = False
@@ -51,23 +59,26 @@ class CrosswordClient:
                         break
                 elif parts[0] == 'False':
                     print("Invalid move")
+                    self.entry_grid[row][col].delete(0, tk.END)
+                    self.blocked=True
                     for i in range(10):
                         for j in range(10):
-                            self.entry_grid[i][j].config(state=tk.DISABLED, bg='red')
-                    self.entry_grid[row][col].delete(0, tk.END)
+                            print("disabling", i, j)
+                            self.entry_grid[i][j].config(state=tk.DISABLED)
                     self.waiting_for_response = True
-                    break
+                    time.sleep(0.5)
+                    # break
 
     def block_row_and_color_green(self, row):
         self.already_guessed.append(row)
         for i in range(10):
-            self.entry_grid[row][i].config(state=tk.DISABLED, bg='green')
+            self.entry_grid[row][i].config(state=tk.DISABLED)
 
     def receive_data(self, socket):
-        print("Receiving data")
-        response = socket.recv(1024).decode()
-        print("Received data:", response)
-        return response if response else None
+        with self.lock:
+            response = socket.recv(1024).decode()
+            print("Received data:", response)
+            return response if response else None
     
     def update_crossword(self, response):
         for i, row in enumerate(response):
