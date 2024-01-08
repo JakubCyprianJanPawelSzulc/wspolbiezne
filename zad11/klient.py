@@ -13,6 +13,7 @@ class CrosswordClient:
         self.waiting_for_response = False
         self.lock = threading.Lock()
         self.blocked=False
+        self.wait_for_response()
 
     def create_ui(self):
         self.entry_grid = [[None] * 10 for _ in range(10)]
@@ -33,14 +34,15 @@ class CrosswordClient:
         print('Connected to server on port', port)
         return client_socket
 
-    def wait_for_response(self, row, col):
-        while self.waiting_for_response:
+    def wait_for_response(self):
+        while True:
             print("Waiting for response")
-            time.sleep(1)
+            # time.sleep(1)
             response = self.receive_data(self.client_socket)
             print("Response:", response)
             if response is not None:
                 parts = response.split('/')
+                self.update_crossword(parts[2])
                 if parts[0] == 'True':
                     if self.blocked:
                         self.blocked=False
@@ -48,6 +50,7 @@ class CrosswordClient:
                             if i not in self.already_guessed:
                                 for j in range(10):
                                     self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
+                        break
                     if parts[1] == 'None':
                         print("Valid move")
                         self.waiting_for_response = False
@@ -59,11 +62,10 @@ class CrosswordClient:
                         break
                 elif parts[0] == 'False':
                     print("Invalid move")
-                    self.entry_grid[row][col].delete(0, tk.END)
+                    # self.entry_grid[row][col].delete(0, tk.END)
                     self.blocked=True
                     for i in range(10):
                         for j in range(10):
-                            print("disabling", i, j)
                             self.entry_grid[i][j].config(state=tk.DISABLED)
                     self.waiting_for_response = True
                     time.sleep(0.5)
@@ -75,17 +77,27 @@ class CrosswordClient:
             self.entry_grid[row][i].config(state=tk.DISABLED)
 
     def receive_data(self, socket):
-        with self.lock:
+        # with self.lock:
             response = socket.recv(1024).decode()
             print("Received data:", response)
             return response if response else None
     
     def update_crossword(self, response):
-        for i, row in enumerate(response):
-            for j, char in enumerate(row):
+        print("Updating crossword")
+        if response.endswith("True"):
+            response = response[:-4]
+        inner_list_strings = response[2:-2].split("], [")
+        result = [s.split(", ") for s in inner_list_strings]
+        result = [sublist + [''] * (10 - len(sublist)) for sublist in result]
+        result = [[s[1:-1] for s in sublist] for sublist in result]
+        self.root.after(0, self.update_entries, result)
+
+    def update_entries(self, result):
+        for i in range(10):
+            for j in range(10):
                 self.entry_grid[i][j].delete(0, tk.END)
-                self.entry_grid[i][j].insert(0, char)
-                self.entry_grid[i][j].config(state=tk.DISABLED)
+                self.entry_grid[i][j].insert(0, result[i][j])
+            
 
     def handle_click(self, row, col):
         if self.current_field:
@@ -102,7 +114,7 @@ class CrosswordClient:
             self.send_data(msg)
             print("Sent data:", data, row, col)
             self.waiting_for_response = True
-            self.wait_for_response(row, col)
+            self.wait_for_response()
         else:
             print("Invalid input")
 
@@ -115,5 +127,4 @@ if __name__ == '__main__':
     root.title("Crossword Client")
 
     client = CrosswordClient(root)
-
     root.mainloop()

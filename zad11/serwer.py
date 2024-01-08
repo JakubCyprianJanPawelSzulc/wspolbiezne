@@ -47,6 +47,7 @@ class CrosswordGame:
                 client2_address = client_address
 
         print('Both players connected')
+        self.respond_to_player(client1_socket, True, None, self.board)
         self.wait_for_response(client1_socket, client2_socket)
             
 
@@ -57,18 +58,18 @@ class CrosswordGame:
             response = self.get_response_from_player(current_socket)
             if response is not None:
                 is_good, index = self.process_response(response)
-                self.respond_to_player(current_socket, is_good, index)
+                self.respond_to_player(current_socket, is_good, index, self.board)
                 if is_good is False:
                     if current_socket == client_socket1:
                         current_socket = client_socket2
                         print("Switching to player 2")
                         print("Current socket:", current_socket)
-                        self.respond_to_player(current_socket, True, None)
+                        self.respond_to_player(current_socket, True, None, self.board)
                     else:
                         current_socket = client_socket1
                         print("Switching to player 1")
                         print("Current socket:", current_socket)
-                        self.respond_to_player(current_socket, True, None)
+                        self.respond_to_player(current_socket, True, None, self.board)
 
 
     def get_response_from_player(self, client_socket):
@@ -77,8 +78,8 @@ class CrosswordGame:
             print("Received data:", response)
             return response if response else None
         
-    def respond_to_player(self, client_socket, isGood, isCompleteWord):
-        msg = f"{isGood}/{isCompleteWord}"
+    def respond_to_player(self, client_socket, isGood, isCompleteWord, boardState):
+        msg = f"{isGood}/{isCompleteWord}/{boardState}/"
         client_socket.sendall(msg.encode())
 
     def check_if_word_completed(self):
