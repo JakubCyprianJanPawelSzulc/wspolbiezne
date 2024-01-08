@@ -15,6 +15,7 @@ class CrosswordClient:
         self.lock = threading.Lock()
         self.blocked=False
         self.wait_for_response()
+        self.wait_for_response()
 
     def create_ui(self):
         self.entry_grid = [[None] * 10 for _ in range(10)]
@@ -41,6 +42,17 @@ class CrosswordClient:
             # time.sleep(1)
             response = self.receive_data(self.client_socket)
             print("Response:", response)
+            if response.startswith("questions:"):
+                print(response)
+                break
+            if response == 'None/None/None/None':
+                print("Game over")
+                if self.ask_for_rematch():
+                    self.restart_game()
+                else:
+                    self.root.destroy()
+                break
+
             if response is not None:
                 parts = response.split('/')
                 self.update_crossword(parts[2], parts[3])
@@ -71,6 +83,26 @@ class CrosswordClient:
                     self.waiting_for_response = True
                     time.sleep(0.5)
                     # break
+
+    def ask_for_rematch(self):
+        print("Asking for rematch")
+        answer = messagebox.askyesno("Rematch", "Do you want to play again?")
+        if answer:
+            self.send_data("True")
+            return True
+        else:
+            self.send_data("False")
+    
+    def restart_game(self):
+        self.already_guessed = []
+        self.waiting_for_response = False
+        self.blocked=False
+        for i in range(10):
+            for j in range(10):
+                self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
+                self.entry_grid[i][j].delete(0, tk.END)
+        self.wait_for_response()
+
 
     def block_row_and_color_green(self, row):
         self.already_guessed.append(row)
