@@ -3,6 +3,7 @@ from tkinter import messagebox
 import threading
 import time
 import socket
+import ast
 
 class CrosswordClient:
     def __init__(self,root):
@@ -42,7 +43,7 @@ class CrosswordClient:
             print("Response:", response)
             if response is not None:
                 parts = response.split('/')
-                self.update_crossword(parts[2])
+                self.update_crossword(parts[2], parts[3])
                 if parts[0] == 'True':
                     if self.blocked:
                         self.blocked=False
@@ -82,7 +83,7 @@ class CrosswordClient:
             print("Received data:", response)
             return response if response else None
     
-    def update_crossword(self, response):
+    def update_crossword(self, response, complete_words):
         print("Updating crossword")
         if response.endswith("True"):
             response = response[:-4]
@@ -91,6 +92,11 @@ class CrosswordClient:
         result = [sublist + [''] * (10 - len(sublist)) for sublist in result]
         result = [[s[1:-1] for s in sublist] for sublist in result]
         self.root.after(0, self.update_entries, result)
+
+        complete_words = ast.literal_eval(complete_words)
+        for i in range(10):
+            if complete_words[i]:
+                self.root.after(0, lambda i=i: self.block_row_and_color_green(i))
 
     def update_entries(self, result):
         for i in range(10):
