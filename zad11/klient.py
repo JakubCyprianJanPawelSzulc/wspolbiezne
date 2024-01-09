@@ -45,10 +45,10 @@ class CrosswordClient:
             if response.startswith("questions:"):
                 print(response)
                 break
-            if response == 'None/None/None/None':
+            if response == 'game_finished':
                 print("Game over")
                 if self.ask_for_rematch():
-                    self.restart_game()
+                    self.root.after(0, self.restart_game)
                 else:
                     self.root.destroy()
                 break
@@ -89,6 +89,7 @@ class CrosswordClient:
         answer = messagebox.askyesno("Rematch", "Do you want to play again?")
         if answer:
             self.send_data("True")
+            #kill ui and create new one
             return True
         else:
             self.send_data("False")
@@ -99,8 +100,13 @@ class CrosswordClient:
         self.blocked=False
         for i in range(10):
             for j in range(10):
+                print("resetting", i, j)
                 self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
                 self.entry_grid[i][j].delete(0, tk.END)
+        self.root.after(1000, self.continue_restart_game)
+
+    def continue_restart_game(self):
+        self.wait_for_response()
         self.wait_for_response()
 
 
@@ -125,10 +131,12 @@ class CrosswordClient:
         result = [[s[1:-1] for s in sublist] for sublist in result]
         self.root.after(0, self.update_entries, result)
 
-        complete_words = ast.literal_eval(complete_words)
-        for i in range(10):
-            if complete_words[i]:
-                self.root.after(0, lambda i=i: self.block_row_and_color_green(i))
+        if complete_words is not None:
+            complete_words = ast.literal_eval(complete_words)
+            if len(complete_words) == 10: 
+                for i in range(10):
+                    if complete_words[i]:
+                        self.root.after(0, lambda i=i: self.block_row_and_color_green(i))
 
     def update_entries(self, result):
         for i in range(10):

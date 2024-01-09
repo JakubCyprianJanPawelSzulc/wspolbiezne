@@ -49,13 +49,15 @@ class CrosswordGame:
                 client2_address = client_address
 
         print('Both players connected')
-        self.respond_to_player(client1_socket, True, None, self.board, self.complete_words)
+        # self.respond_to_player(client1_socket, True, None, self.board, self.complete_words)
         self.wait_for_response(client1_socket, client2_socket)
             
 
     def wait_for_response(self, client_socket1, client_socket2):
         self.send_questions(client_socket1)
         self.send_questions(client_socket2)
+        time.sleep(1)
+        self.respond_to_player(client_socket1, True, None, self.board, self.complete_words)
 
         current_socket=client_socket1
         while True:
@@ -66,11 +68,11 @@ class CrosswordGame:
                 if is_good is True:
                     if self.check_if_game_finished():
                         print("Game finished")
-                        self.respond_to_player(client_socket1, None, None, None, None)
-                        self.respond_to_player(client_socket2, None, None, None, None)
+                        self.send_game_finished(client_socket1)
+                        self.send_game_finished(client_socket2)
                         response1 = self.get_response_from_player(client_socket1)
                         response2 = self.get_response_from_player(client_socket2)
-                        if response1 is True and response2 is True:
+                        if response1=='True' and response2=='True':
                             self.current_set += 1
                             self.initialize_target_board(self.words[self.current_set])
                             self.board = [[''] * len(word) for word in self.words[self.current_set]]
@@ -104,6 +106,10 @@ class CrosswordGame:
 
     def send_questions(self, client_socket):
         msg = f"questions:{self.questions[self.current_set]}"
+        client_socket.sendall(msg.encode())
+
+    def send_game_finished(self, client_socket):
+        msg = f"game_finished"
         client_socket.sendall(msg.encode())
 
     def check_if_word_completed(self):
