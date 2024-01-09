@@ -33,20 +33,19 @@ class CrosswordClient:
     def create_communication_thread(self, port):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect(('localhost', port))
-        print('Connected to server on port', port)
+        # print('Connected to server on port', port)
         return client_socket
 
     def wait_for_response(self):
         while True:
-            print("Waiting for response")
-            # time.sleep(1)
+            # print("Waiting for response")
             response = self.receive_data(self.client_socket)
-            print("Response:", response)
+            # print("Response:", response)
             if response.startswith("questions:"):
                 print(response)
                 break
-            if response == 'game_finished':
-                print("Game over")
+            if response.startswith("game_finished"):
+                print(response)
                 if self.ask_for_rematch():
                     self.root.after(0, self.restart_game)
                 else:
@@ -65,31 +64,28 @@ class CrosswordClient:
                                     self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
                         break
                     if parts[1] == 'None':
-                        print("Valid move")
+                        # print("Valid move")
                         self.waiting_for_response = False
                         break
                     elif int(parts[1]) not in self.already_guessed:
-                        print("Complete word in row:", parts[1])
+                        # print("Complete word in row:", parts[1])
                         self.block_row_and_color_green(int(parts[1]))
                         self.waiting_for_response = False
                         break
                 elif parts[0] == 'False':
-                    print("Invalid move")
-                    # self.entry_grid[row][col].delete(0, tk.END)
+                    # print("Invalid move")
                     self.blocked=True
                     for i in range(10):
                         for j in range(10):
                             self.entry_grid[i][j].config(state=tk.DISABLED)
                     self.waiting_for_response = True
                     time.sleep(0.5)
-                    # break
 
     def ask_for_rematch(self):
-        print("Asking for rematch")
+        # print("Asking for rematch")
         answer = messagebox.askyesno("Rematch", "Do you want to play again?")
         if answer:
             self.send_data("True")
-            #kill ui and create new one
             return True
         else:
             self.send_data("False")
@@ -100,7 +96,7 @@ class CrosswordClient:
         self.blocked=False
         for i in range(10):
             for j in range(10):
-                print("resetting", i, j)
+                # print("reset", i, j)
                 self.entry_grid[i][j].config(state=tk.NORMAL, bg='white')
                 self.entry_grid[i][j].delete(0, tk.END)
         self.root.after(1000, self.continue_restart_game)
@@ -116,13 +112,12 @@ class CrosswordClient:
             self.entry_grid[row][i].config(state=tk.DISABLED)
 
     def receive_data(self, socket):
-        # with self.lock:
-            response = socket.recv(1024).decode()
-            print("Received data:", response)
-            return response if response else None
+        response = socket.recv(1024).decode()
+        # print("Received data:", response)
+        return response if response else None
     
     def update_crossword(self, response, complete_words):
-        print("Updating crossword")
+        # print("Updating crossword")
         if response.endswith("True"):
             response = response[:-4]
         inner_list_strings = response[2:-2].split("], [")
@@ -158,7 +153,7 @@ class CrosswordClient:
             row, col = self.current_field
             msg = f"{data}/{row}/{col}"
             self.send_data(msg)
-            print("Sent data:", data, row, col)
+            # print("Sent data:", data, row, col)
             self.waiting_for_response = True
             self.wait_for_response()
         else:

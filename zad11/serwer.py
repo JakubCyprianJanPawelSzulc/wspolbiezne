@@ -11,6 +11,8 @@ class CrosswordGame:
         self.board = [[''] * len(word) for word in words[0]]
         self.complete_words = [False] * len(words[0])
         self.current_set = 0
+        self.player1_points = 0
+        self.player2_points = 0
 
     def initialize_target_board(self, words):
         board = [[''] * len(word) for word in words]
@@ -66,6 +68,10 @@ class CrosswordGame:
             if response is not None:
                 is_good, index = self.process_response(response)
                 if is_good is True:
+                    if current_socket == client_socket1:
+                        self.player1_points += 1
+                    else:
+                        self.player2_points += 1
                     if self.check_if_game_finished():
                         print("Game finished")
                         self.send_game_finished(client_socket1)
@@ -109,7 +115,7 @@ class CrosswordGame:
         client_socket.sendall(msg.encode())
 
     def send_game_finished(self, client_socket):
-        msg = f"game_finished"
+        msg = f"game_finished/player1->{self.player1_points}:player2->{self.player2_points}"
         client_socket.sendall(msg.encode())
 
     def check_if_word_completed(self):
